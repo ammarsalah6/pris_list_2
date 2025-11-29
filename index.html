@@ -16,8 +16,8 @@
             --bg-cream: #FFF8E1;       /* كريمي (خلفية الورق) */
             --text-main: #212121;      /* لون الخط الرئيسي */
             --border-color: #D7CCC8;   /* لون الحدود الفاتح */
-            /* مقاسات ثابتة لصفحة الكتاب */
-            --page-height: 480px; 
+            /* مقاسات ثابتة لصفحة الكتاب (تم زيادتها) */
+            --page-height: 550px; 
             --page-padding: 30px;
         }
 
@@ -77,14 +77,41 @@
             justify-content: center;
         }
         
+        .search-box {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 50px 10px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+            background: #fff;
+        }
+
+        .search-box i {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-light);
+        }
+
         /* ---------------------------------
         * تنسيق الصفحات (مقاس واحد)
         * --------------------------------- */
         #page-content {
             padding: var(--page-padding);
             height: var(--page-height); /* ارتفاع ثابت للصفحة الواحدة */
-            overflow: hidden; /* إخفاء أي محتوى يتجاوز الارتفاع الثابت */
+            overflow: hidden; /* إخفاء أي محتوى يتجاوز الارتفاع الثابت (يتم تفعيله بالـ JS عند الحاجة) */
             position: relative;
+            box-sizing: border-box; /* لضمان أن الـ padding لا يزيد الارتفاع الكلي */
         }
 
         /* تنسيق الأقسام */
@@ -187,6 +214,7 @@
             transition: background-color 0.3s;
             display: flex;
             align-items: center;
+            white-space: nowrap; /* لمنع كسر النصوص */
         }
 
         .nav-btn:hover:not(:disabled) {
@@ -224,20 +252,6 @@
             border-radius: 5px;
             margin: 20px;
         }
-
-        /* شريط السوشيال ميديا */
-        .social-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: var(--primary-dark);
-            padding: 15px;
-            text-align: center;
-            z-index: 1000;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-            display: none; /* إخفائه هنا لأنه تداخل مع شريط التنقل الجديد */
-        }
         
         /* التجاوب مع الموبايل */
         @media (max-width: 600px) {
@@ -253,6 +267,17 @@
             }
             .items-grid {
                 grid-template-columns: 1fr;
+            }
+            .pagination-nav {
+                padding: 10px 15px;
+            }
+            .nav-btn {
+                padding: 8px 15px;
+                font-size: 0.85rem;
+            }
+            .page-info {
+                font-size: 0.8rem;
+                line-height: 1.4;
             }
         }
     </style>
@@ -311,7 +336,7 @@
         let allData = []; // البيانات الخام
         let allCategories = []; // قائمة ببيانات التصنيفات المجمعة
         let currentPageIndex = 0; // مؤشر الصفحة الحالية
-        const ITEMS_PER_PREVIEW = 10; // عدد الأصناف التي تظهر قبل زر "عرض المزيد"
+        const ITEMS_PER_PREVIEW = 8; // عدد الأصناف التي تظهر قبل زر "عرض المزيد" (تم تعديله)
 
         // دالة مساعدة للعثور على اسم المفتاح الصحيح (العنوان) بغض النظر عن المسافات الزائدة
         function findKey(item, target) {
@@ -382,7 +407,7 @@
                     }
                 },
                 error: function(err) {
-                    pageContent.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات. تأكد من صحة الرابط أو إعدادات المشاركة.<br>${err.message}</div>`;
+                    pageContent.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات. تأكد من صحة الرابط أو إعدادات المشاركة.</div>`;
                 }
             });
         }
@@ -405,6 +430,7 @@
             const grid = document.createElement('div');
             grid.className = 'items-grid';
 
+            // تحديد عدد الأصناف المعروضة
             const itemsToRender = isFullView ? categoryData.items : categoryData.items.slice(0, ITEMS_PER_PREVIEW);
 
             itemsToRender.forEach(item => {
@@ -485,6 +511,14 @@
                 nextBtn.innerHTML = `التالي: ${nextCatName} <i class="fas fa-chevron-left"></i>`;
             } else {
                 nextBtn.innerHTML = `النهاية <i class="fas fa-check"></i>`;
+            }
+            
+            // تحديث زر السابق باسم التصنيف السابق
+            if (!isFirstPage) {
+                const prevCatName = allCategories[currentPageIndex - 1].categoryName;
+                prevBtn.innerHTML = `<i class="fas fa-chevron-right"></i> السابق: ${prevCatName}`;
+            } else {
+                prevBtn.innerHTML = `<i class="fas fa-chevron-right"></i> البداية`;
             }
         }
         
