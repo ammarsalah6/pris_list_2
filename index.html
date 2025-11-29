@@ -270,7 +270,7 @@
         <a href="#"><i class="fab fa-facebook-f"></i></a>
         <a href="#"><i class="fab fa-whatsapp"></i></a>
         <a href="#"><i class="fab fa-instagram"></i></a>
-        <a href="tel:01000000000"><i class="fas fa-phone-alt"></i></a>
+        <a href="t<el:01000000000"><i class="fas fa-phone-alt"></i></a>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
@@ -284,6 +284,16 @@
         const menuContainer = document.getElementById('menu-content');
         const searchInput = document.getElementById('searchInput');
         let allData = [];
+
+        // دالة مساعدة للعثور على اسم المفتاح الصحيح (العنوان) بغض النظر عن المسافات الزائدة
+        function findKey(item, target) {
+            for (const key in item) {
+                if (key && key.trim() === target) {
+                    return key;
+                }
+            }
+            return null;
+        }
 
         function fetchMenu() {
             if (sheetURL.includes("ضع_رابط")) {
@@ -300,8 +310,13 @@
                 header: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    console.log("Data loaded:", results.data); // للفحص في الكونسول
                     allData = results.data;
+                    
+                    // طباعة رؤوس الأعمدة الفعلية للتشخيص (ستظهر في Console المتصفح)
+                    if (allData.length > 0) {
+                        console.log("Actual CSV Headers Found:", Object.keys(allData[0]));
+                    }
+
                     renderMenu(allData);
                 },
                 error: function(err) {
@@ -313,28 +328,48 @@
         function renderMenu(data) {
             menuContainer.innerHTML = "";
             
-            // تجميع البيانات حسب عمود "التصنيف"
-            const categories = {};
-            
-            data.forEach(item => {
-                // التأكد من وجود البيانات في الأعمدة الصحيحة
-                // الأعمدة هي: التصنيف، الصنف، السعر
-                const category = item['التصنيف'];
-                const name = item['الصنف'];
-                const price = item['السعر'];
+            if (data.length === 0) {
+                menuContainer.innerHTML = "<p style='text-align:center'>لا توجد أصناف للعرض حالياً (قد تكون المشكلة في البيانات أو الرابط)</p>";
+                return;
+            }
 
-                if (category && name) {
+            const categories = {};
+            let itemsCount = 0; // لعد الأصناف التي تم تحميلها بنجاح
+
+            data.forEach(item => {
+                // البحث عن الأعمدة الصحيحة بشكل مرن
+                const categoryKey = findKey(item, 'التصنيف');
+                const nameKey = findKey(item, 'الصنف');
+                const priceKey = findKey(item, 'السعر');
+
+                const category = categoryKey ? item[categoryKey] : null;
+                const name = nameKey ? item[nameKey] : null;
+                const price = priceKey ? item[priceKey] : null;
+
+
+                if (category && category.trim() !== '' && name && name.trim() !== '') {
                     const cleanCat = category.trim();
                     if (!categories[cleanCat]) {
                         categories[cleanCat] = [];
                     }
-                    categories[cleanCat].push({ name, price });
+                    categories[cleanCat].push({ name: name.trim(), price: price ? price.trim() : null });
+                    itemsCount++;
                 }
             });
 
             // عرض البيانات
-            if (Object.keys(categories).length === 0) {
-                menuContainer.innerHTML = "<p style='text-align:center'>لا توجد أصناف للعرض حالياً</p>";
+            if (itemsCount === 0) {
+                 menuContainer.innerHTML = `
+                    <div class="error-msg">
+                        <h3>لا توجد أصناف للعرض حالياً 🙁</h3>
+                        <p>الرجاء التأكد من الخطوات التالية:</p>
+                        <ul>
+                            <li><strong>1. التأكد من النشر:</strong> تأكد أن ملف جوجل شيت منشور (Public) وأن الرابط صحيح.</li>
+                            <li><strong>2. صحة الأعمدة:</strong> يجب أن تكون الأعمدة في الشيت بالضبط (<strong>التصنيف</strong>، <strong>الصنف</strong>، <strong>السعر</strong>) وفي الصف الأول.</li>
+                            <li><strong>3. البيانات الفارغة:</strong> تأكد أن عمودي "التصنيف" و "الصنف" ليسا فارغين في الصفوف.</li>
+                        </ul>
+                    </div>
+                `;
                 return;
             }
 
@@ -355,7 +390,6 @@
                     const itemEl = document.createElement('div');
                     itemEl.className = 'menu-item';
                     
-                    // تنسيق السعر (إضافة "ج.م" إذا لم تكن موجودة)
                     let priceDisplay = item.price ? item.price : '--';
                     
                     itemEl.innerHTML = `
@@ -377,8 +411,12 @@
             const term = e.target.value.toLowerCase();
             
             const filteredData = allData.filter(item => {
-                const nameMatch = item['الصنف'] && item['الصنف'].toLowerCase().includes(term);
-                const catMatch = item['التصنيف'] && item['التصنيف'].toLowerCase().includes(term);
+                const nameKey = findKey(item, 'الصنف');
+                const catKey = findKey(item, 'التصنيف');
+
+                const nameMatch = nameKey && item[nameKey] && item[nameKey].toLowerCase().includes(term);
+                const catMatch = catKey && item[catKey] && item[catKey].toLowerCase().includes(term);
+                
                 return nameMatch || catMatch;
             });
             
@@ -387,9 +425,6 @@
 
         // بدء التحميل
         fetchMenu();
-
     </script>
 </body>
-
 </html>
-
