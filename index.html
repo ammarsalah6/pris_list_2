@@ -298,10 +298,31 @@
         .nav-btn:hover:not(:disabled) { background-color: #004D40; } 
         .nav-btn:disabled { background-color: rgba(27, 94, 32, 0.4); cursor: not-allowed; color: #e0e0e0; }
 
+        /* ستايل زر الفهرس الجديد */
+        .home-btn {
+            background-color: #fff;
+            color: var(--primary-dark);
+            margin: 0 10px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .home-btn:hover {
+            background-color: #F1F8E9;
+            color: var(--primary-dark);
+            transform: scale(1.05);
+        }
+        
+        .page-info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .page-info {
             font-size: 1.1rem;
             font-weight: 500;
             text-align: center;
+            margin-bottom: 5px;
         }
         
         /* التجاوب مع الموبايل */
@@ -352,17 +373,38 @@
             .pagination-nav {
                 padding: 10px 15px;
                 flex-direction: column; 
-                gap: 5px;
+                gap: 10px; /* زيادة المسافة قليلاً */
             }
             .page-info {
                 font-size: 0.85rem; 
             }
+            
+            /* ترتيب الأزرار في الموبايل */
             .nav-btn {
-                padding: 6px 8px; 
-                font-size: 0.75rem;
+                padding: 8px 12px; 
+                font-size: 0.8rem;
                 width: 100%; 
-                margin: 2px 0;
                 justify-content: center; 
+            }
+
+            .page-info-container {
+                order: -1; /* المعلومات فوق */
+                margin-bottom: 5px;
+            }
+            
+            .home-btn {
+                width: auto; /* الزرار مايكونش عريض اوي في الموبايل */
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 5px auto; /* توسيط */
+            }
+            .home-btn span {
+                display: none; /* إخفاء كلمة الفهرس في الموبايل والاكتفاء بالأيقونة */
             }
             
             .social-bar {
@@ -400,7 +442,12 @@
                 <i class="fas fa-chevron-right"></i> السابق
             </button>
             
-            <div id="pageInfo" class="page-info"></div>
+            <div class="page-info-container">
+                <div id="pageInfo" class="page-info"></div>
+                <button id="indexBtn" class="nav-btn home-btn" style="display: none;" title="العودة للفهرس">
+                    <i class="fas fa-th-large"></i> <span>الفهرس</span>
+                </button>
+            </div>
 
             <button id="nextBtn" class="nav-btn" disabled>
                 التالي <i class="fas fa-chevron-left"></i>
@@ -430,6 +477,7 @@
         const searchInput = document.getElementById('searchInput');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
+        const indexBtn = document.getElementById('indexBtn'); // تعريف الزر الجديد
         const pageInfo = document.getElementById('pageInfo');
         const socialBar = document.querySelector('.social-bar'); 
         
@@ -478,17 +526,16 @@
             let rawCategories = Object.keys(categoriesMap).map(catName => ({
                 categoryName: catName,
                 items: categoriesMap[catName],
-                isIndex: false // علامة لتمييز الصفحات العادية
+                isIndex: false 
             })).filter(cat => cat.items.length > 0);
 
-            // إضافة صفحة الفهرس في البداية (index 0)
+            // إضافة صفحة الفهرس
             const indexPage = {
                 categoryName: "فهرس المنتجات",
-                isIndex: true, // علامة لتمييز صفحة الفهرس
-                items: [] // فارغة لأننا سنملؤها ديناميكياً
+                isIndex: true, 
+                items: [] 
             };
             
-            // دمج الفهرس مع باقي التصنيفات
             allCategories = [indexPage, ...rawCategories];
         }
 
@@ -506,17 +553,17 @@
                     allData = results.data;
                     processData(allData);
                     
-                    if (allCategories.length > 1) { // > 1 لأن الفهرس موجود دائماً
-                        displayPage(0); // عرض الفهرس أولاً
+                    if (allCategories.length > 1) { 
+                        displayPage(0); 
                         setupNavigation(); 
                     } else {
-                        pageContent.innerHTML = `<div class="error-msg">لا توجد بيانات صالحة للعرض. تأكد من الأعمدة (التصنيف, الصنف, السعر, الوحدة).</div>`;
+                        pageContent.innerHTML = `<div class="error-msg">لا توجد بيانات صالحة للعرض.</div>`;
                         nextBtn.disabled = true;
                         prevBtn.disabled = true;
                     }
                 },
                 error: function(err) {
-                    pageContent.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات. تأكد من صحة الرابط أو إعدادات المشاركة.</div>`;
+                    pageContent.innerHTML = `<div class="error-msg">حدث خطأ أثناء تحميل البيانات.</div>`;
                 }
             });
         }
@@ -532,38 +579,30 @@
             title.innerText = categoryData.categoryName;
             section.appendChild(title);
 
-            // ******************************************
-            // المنطق الخاص بصفحة الفهرس
-            // ******************************************
             if (categoryData.isIndex) {
                 const indexContainer = document.createElement('div');
                 indexContainer.className = 'index-grid';
                 
-                // التكرار على كل التصنيفات ما عدا الفهرس نفسه (index 0)
                 allCategories.forEach((cat, idx) => {
-                    if (idx === 0) return; // تخطي الفهرس
+                    if (idx === 0) return; 
 
-                    const indexBtn = document.createElement('div');
-                    indexBtn.className = 'index-btn';
-                    indexBtn.innerHTML = `${cat.categoryName} <i class="fas fa-arrow-left"></i>`;
+                    const indexBtnDiv = document.createElement('div');
+                    indexBtnDiv.className = 'index-btn';
+                    indexBtnDiv.innerHTML = `${cat.categoryName} <i class="fas fa-arrow-left"></i>`;
                     
-                    // عند الضغط، اذهب للصفحة المحددة
-                    indexBtn.onclick = () => {
+                    indexBtnDiv.onclick = () => {
                         displayPage(idx);
                     };
                     
-                    indexContainer.appendChild(indexBtn);
+                    indexContainer.appendChild(indexBtnDiv);
                 });
                 
                 section.appendChild(indexContainer);
                 pageContent.appendChild(section);
-                pageContent.style.overflowY = 'auto'; // السماح بالتمرير في الفهرس
-                return; // إنهاء الدالة هنا للفهرس
+                pageContent.style.overflowY = 'auto'; 
+                return; 
             }
 
-            // ******************************************
-            // المنطق العادي للصفحات الأخرى
-            // ******************************************
             const grid = document.createElement('div');
             grid.className = 'items-grid';
 
@@ -608,7 +647,6 @@
                 };
 
                 pageContent.appendChild(toggleButton);
-                
                 pageContent.style.overflowY = (isFullView || categoryData.items.length > ITEMS_PER_PREVIEW) ? 'auto' : 'hidden'; 
             } else {
                  pageContent.style.overflowY = 'hidden'; 
@@ -634,26 +672,23 @@
             
             const currentCatName = allCategories[currentPageIndex].categoryName;
             
-            // تحديث نص معلومات الصفحة
+            // تحديث نص الصفحة وزر الفهرس
             if (currentPageIndex === 0) {
                 pageInfo.innerHTML = `<strong>القائمة الرئيسية</strong>`;
                 prevBtn.innerHTML = `<i class="fas fa-chevron-right"></i> لا يوجد`;
+                indexBtn.style.display = 'none'; // إخفاء زر الفهرس لأننا فيه بالفعل
             } else {
-                pageInfo.innerHTML = `التصنيف الحالي: <strong>${currentCatName}</strong> <br> صفحة ${currentPageIndex} من ${totalPages - 1}`;
+                pageInfo.innerHTML = `التصنيف: <strong>${currentCatName}</strong>`;
+                indexBtn.style.display = 'inline-flex'; // إظهار الزر في باقي الصفحات
                 
-                // زر السابق
                 if (currentPageIndex === 1) {
                      prevBtn.innerHTML = `<i class="fas fa-chevron-right"></i> الفهرس`;
                 } else {
-                     const prevCatName = allCategories[currentPageIndex - 1].categoryName;
                      prevBtn.innerHTML = `<i class="fas fa-chevron-right"></i> السابق`;
                 }
             }
 
-            // زر التالي
             if (!isLastPage) {
-                const nextCatName = allCategories[currentPageIndex + 1].categoryName;
-                // لو احنا في الفهرس (0) الزرار التالي يكتب "ابدأ التصفح" او اسم اول قسم
                 if (currentPageIndex === 0) {
                      nextBtn.innerHTML = `ابدأ التصفح <i class="fas fa-chevron-left"></i>`;
                 } else {
@@ -678,6 +713,11 @@
                 if (currentPageIndex < allCategories.length - 1) {
                     displayPage(currentPageIndex + 1);
                 }
+            };
+            
+            // تفعيل زر الفهرس الجديد
+            indexBtn.onclick = () => {
+                displayPage(0);
             };
         }
         
@@ -707,7 +747,6 @@
                 return;
             }
 
-            // في البحث نستخدم العرض العادي وليس الفهرس
             const searchCategory = {
                 categoryName: `نتائج البحث عن: "${term}"`,
                 isIndex: false,
